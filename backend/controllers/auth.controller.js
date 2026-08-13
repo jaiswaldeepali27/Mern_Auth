@@ -1,6 +1,7 @@
 import { User } from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import { generateVerificationCode } from "../utils/generateVerificationCode.js";
+import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js";
 
 export const signup = async (req, res) => {
     const {email, password, name} = req.body;
@@ -15,7 +16,7 @@ export const signup = async (req, res) => {
             return res.status(400).json({success:false, message: "user already exists"});
         }
 
-        const hashedPassword = await bcryptjs.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
         const verificationCode = generateVerificationCode();
 
         const user = new User({
@@ -30,6 +31,17 @@ export const signup = async (req, res) => {
 
         //jwt
         generateTokenAndSetCookie(res, user._id);
+
+        sendverificationEmail(user.email, verificationToken);
+
+        res.status(201).json({
+            success: true,
+            message: "User created successfully",
+            user: {
+                ...user._doc,
+                password: undefined
+            }
+        });
     } catch (error) {
         res.status(400).json({success:false, message: error.message});
     }
